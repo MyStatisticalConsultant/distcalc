@@ -1,7 +1,7 @@
 # Distribution Calculator — Shiny App
 
 An interactive Shiny application for **computing and visualizing probability 
-distributions**: **Normal**, **t**, **Chi-square (χ²)**, and **F**.
+distributions**: **Normal**, **t**, **Chi-square (χ²)**, **F** and **Binomial**.
 
 The calculator makes it easy to:
 
@@ -15,9 +15,9 @@ The calculator makes it easy to:
 
 ## What this app does
 
-- **Distributions**: Normal, t, χ², and F.
+- **Distributions**: Normal, t, χ², F and Binomial.
 - **Parameters**: interactively adjust parameters (e.g., μ and σ for Normal; degrees 
-of freedom for t/χ²/F) and see results instantly.  
+of freedom for t/χ²/F); *n* and *p* for Binomial and see results instantly.  
 - **Probabilities & critical values**: compute $P(X \le x)$, $P(a \le X \le b)$, 
 tail probabilities, and quantiles/critical thresholds for a chosen $\alpha$.
 - **Simulation**: draw random samples, view the histogram, and compare with 
@@ -41,7 +41,7 @@ confidence intervals.
 
 ## What you can do
 
-- Select a distribution (Normal, t, χ², F) and set its **parameters / degrees of freedom**.
+- Select a distribution (Normal, t, χ², F, Binomial) and set its **parameters / degrees of freedom**.
 - Define an interval (`x`, or `a–b`) and compute probabilities with shaded regions on the plot.
 - Enter a **significance level** $\alpha$ to get **critical values** (one- or two-tailed).
 - Run a **simulation** (choose sample size and seed), then compare the histogram with the theoretical curve.
@@ -81,7 +81,7 @@ The console will show a local URL (e.g., http://127.0.0.1:XXXX). Open it in your
 ## Using the app
 
 1. Click **Distribution Calculator** in the left sidebar.
-2. Choose a distribution (Normal, t, χ², F).
+2. Choose a distribution (Normal, t, χ², F and Binomial).
 3. Set the **parameters/df**, the **interval** (`x` or `a–b`), and α if needed.
 4. Review the **four output panels**:
    - **Probabilities / shaded area** under the curve

@@ -134,6 +134,11 @@ ui <- dashboardPage(
 # #######################################
 server <- function(input, output, session) 
 {
+  # NULL-coalesce helper: returns b when a is NULL/NA/empty or not length-1
+  `%||%` <- function(a, b) {
+    if (!is.null(a) && length(a) == 1 && !is.na(a)) a else b
+  }
+  
   output$tail = renderUI(
   {
     #print("tail")
@@ -322,243 +327,158 @@ server <- function(input, output, session)
   #######################
   # Normal distribution #
   #######################
-
-  output$mean = renderUI(
-  {
-    #print("mean")
-    if (input$dist == "rnorm")
-    {
-numericInput("mu","Mean", value=0, min=-1000, max=1000, step=1)
-
-	# sliderInput("mu",
-                  # "Mean",
-                  # value = 0,
-                  # min = -500,
-                  # max = 500,
-				  # step=0.1)
-    }
+  
+  output$mean <- renderUI({
+    if (!identical(input$dist, "rnorm")) return(NULL)
+    numericInput(
+      "mu", "Mean",
+      value = as.numeric(input$mu %||% 0),
+      min   = -1000, max = 1000, step = 1
+    )
   })
-    
-  output$sd = renderUI(
-  {
-    #print("sd")
-    if (input$dist == "rnorm")
-    {
-numericInput("sd","Standard deviation", value=1, min=0.1, max=1000, step=1)
-      # sliderInput("sd",
-                  # "Standard deviation",
-                  # value = 1,
-                  # min = 0.1,
-                  # max = 300,
-                  # step=0.1)
-    }
+  
+  output$sd <- renderUI({
+    if (!identical(input$dist, "rnorm")) return(NULL)
+    numericInput(
+      "sd", "Standard deviation",
+      value = as.numeric(input$sd %||% 1),
+      min   = 1e-8, max = 1000, step = 1
+    )
   })
   
   ##########################
-  # t, F, X^2 distribution #
+  # t, F, Chi-square (df)  #
   ##########################
-
-  output$df1 = renderUI(
-  {
-    #print("df1")
-    if (input$dist %in% c("rt","rchisq","rf"))
-    {
-      sliderInput(ifelse(input$dist %in% c("rt","rchisq"), "df","df1"),
-                  "Degrees of freedom",
-                  value = 10,
-                  min = 1,
-                  max = 100)
+  
+  # For t and chi-square you historically used id "df"
+  # For F you used "df1" and "df2" — we preserve that.
+  
+  output$df1 <- renderUI({
+    dist <- input$dist %||% ""
+    if (dist %in% c("rt", "rchisq")) {
+      numericInput(
+        "df", "Degrees of freedom",
+        value = as.integer(input$df %||% 10),
+        min   = 1, max = 1000, step = 1
+      )
+    } else if (identical(dist, "rf")) {
+      numericInput(
+        "df1", "Degrees of freedom (1)",
+        value = as.integer(input$df1 %||% 10),
+        min   = 1, max = 1000, step = 1
+      )
+    } else {
+      NULL
     }
   })
   
-  output$df2 = renderUI(
-  {
-    #print("df2")
-    if (input$dist == "rf")
-    {
-      sliderInput("df2",
-                  "Degrees of freedom (2)",
-                  value = 10,
-                  min = 1,
-                  max = 50)
-    }
+  output$df2 <- renderUI({
+    if (!identical(input$dist, "rf")) return(NULL)
+    numericInput(
+      "df2", "Degrees of freedom (2)",
+      value = as.integer(input$df2 %||% 10),
+      min   = 1, max = 1000, step = 1
+    )
   })
-
-
+  
   #########################
   # Binomial distribution #
   #########################
-
-  output$n = renderUI(
-  {
-    #print("n")
-    if (input$dist == "rbinom")
-    {
-numericInput("n","n (number of observations)", value=10, min=1, max=1000, step=1)	
-      # sliderInput("n",
-                  # "n (number of observations)",
-                  # value = 10,
-                  # min = 1,
-                  # max = 1000,
-                  # step = 1)
-    }
+  
+  output$n <- renderUI({
+    if (!identical(input$dist, "rbinom")) return(NULL)
+    numericInput(
+      "n", "n (number of observations)",
+      value = as.integer(input$n %||% 10),
+      min   = 1, max = 100000, step = 1
+    )
   })
-
-  output$p = renderUI(
-  {
-    #print("p")
-    if (input$dist == "rbinom")
-    {
-numericInput("p","p (probability of success)", value=0.5, min=0, max=1, step=0.01)	
-      # sliderInput("p",
-                  # "p (probability of success)",
-                  # value = 0.5,
-                  # min = 0,
-                  # max = 1,
-                  # step = .01)
-    }
+  
+  output$p <- renderUI({
+    if (!identical(input$dist, "rbinom")) return(NULL)
+    numericInput(
+      "p", "p (probability of success)",
+      value = as.numeric(input$p %||% 0.5),
+      min   = 0, max = 1, step = 0.01
+    )
   })
-
-  output$a = renderUI(
-  {
-    #print("a - lower bound")
-
-    value = 1
-    min = 0
-    max = 1
-    step = 1
-
-    if (input$dist == "rnorm")
-    {
-      find_normal_step = function(sd)
-      {
-        10^round(log(7*sd/100,10))
-      }
-
-      if (is.null(input$mu) | is.null(input$sd)){
-        shiny:::flushReact()
-        return()
-      }
-
-      mu = input$mu
-      sd = input$sd
-      if (is.null(mu)) mu = 0
-      if (is.null(sd)) sd = 1
-
-      value = mu - 1.96 * sd
-      min   = mu - 4 * sd
-      max   = mu + 4 * sd
-      step  = find_normal_step(sd)
-      if (mu == 0 & sd == 1) {step = .01}
-    }
-    else if (input$dist == "rt")
-    {
-      value = -1.96 
-      min   = -6
-      max   = 6
-      step  = 0.01
-    }
-    else if (input$dist == "rf")
-    {
-      value = round(qf(.95,as.numeric(input$df1),as.numeric(input$df2)),digits=2)
-      min   = 0
-      max   = round(qf(.995,as.numeric(input$df1),as.numeric(input$df2))*1.05,digits=2)
-      step  = 0.01
-    }
-    else if (input$dist == "rchisq")
-    {
-      value = round(qchisq(.95,as.numeric(input$df)),digits=2)
-      min   = 0
-      max   = round(qchisq(.995,as.numeric(input$df)),digits=2)
-      step  = 0.01
-    }
-    else if (input$dist == "rbinom")
-    {
-      if (is.null(input$n)){
-        shiny:::flushReact()
-        return()
-      }
-
-      value = round(input$n/4)
-      min = 0
-      max = input$n
-      step = 1
-    }
-numericInput("a","a", value=value, min=min, max=max, step=step)
-    # sliderInput("a", "a",
-                # value = value,
-                # min   = min,
-                # max   = max,
-                # step  = step)
-  })
-
-  output$b = renderUI(
-  {
-    #print("b - upper bound")
-     
-    if (is.null(input$tail))
-    {
-      shiny:::flushReact()
-      return()
+  
+  #########################
+  # Interval inputs: a, b #
+  #########################
+  
+  # Lower bound 'a'
+  output$a <- renderUI({
+    dist <- input$dist %||% ""
+    # sensible defaults
+    value <- 1; min <- 0; max <- 1; step <- 1
+    
+    if (identical(dist, "rnorm")) {
+      # step size helper for normal
+      find_normal_step <- function(sd) 10^round(log10(7 * sd / 100))
+      mu <- as.numeric(input$mu %||% 0)
+      sd <- as.numeric(input$sd %||% 1)
+      value <- mu - 1.96 * sd
+      min   <- mu - 4 * sd
+      max   <- mu + 4 * sd
+      step  <- if (mu == 0 && sd == 1) 0.01 else find_normal_step(sd)
+    } else if (identical(dist, "rt")) {
+      value <- -1.96; min <- -6; max <- 6; step <- 0.01
+    } else if (identical(dist, "rf")) {
+      df1 <- as.numeric(input$df1 %||% 10)
+      df2 <- as.numeric(input$df2 %||% 10)
+      value <- round(qf(0.95, df1, df2), 2)
+      min   <- 0
+      max   <- round(qf(0.995, df1, df2) * 1.05, 2)
+      step  <- 0.01
+    } else if (identical(dist, "rchisq")) {
+      df <- as.numeric(input$df %||% 10)
+      value <- round(qchisq(0.95, df), 2)
+      min   <- 0
+      max   <- round(qchisq(0.995, df), 2)
+      step  <- 0.01
+    } else if (identical(dist, "rbinom")) {
+      n <- as.integer(input$n %||% 10)
+      value <- round(n / 4)
+      min   <- 0
+      max   <- n
+      step  <- 1
     }
     
-    if (input$tail %in% c("middle","both"))
-    {
-      value = 1
-      min = 0
-      max = 1
-      step = 1
-
-      if (input$dist == "rnorm")
-      {
-        find_normal_step = function(sd)
-        {
-          10^round(log(7*sd/100,10))
-        }
-
-        if (is.null(input$mu) | is.null(input$sd)){
-          shiny:::flushReact()
-          return()
-        }
-
-        mu = input$mu
-        sd = input$sd
-        if (is.null(mu)) mu = 0
-        if (is.null(sd)) sd = 1
-
-        value = mu + 1.96 * sd
-        min   = mu - 4 * sd
-        max   = mu + 4 * sd
-        step  = find_normal_step(sd)
-		if (mu == 0 & sd == 1) {step = .01}
-      }
-      else if (input$dist == "rt")
-      {
-        value = 1.96 
-        min   = -6
-        max   = 6
-        step  = 0.01
-      }
-      else if (input$dist == "rbinom")
-      {
-        if (is.null(input$n)){
-          shiny:::flushReact()
-          return()
-        }
-
-        value = round(input$n*3/4)
-        min = 0
-        max = input$n
-        step = 1
-      }
-numericInput("b","b", value=value, min=min, max=max, step=step)
-      # sliderInput("b", "b",
-                  # value = value,
-                  # min   = min,
-                  # max   = max,
-                  # step  = step)
+    numericInput("a", "a", value = value, min = min, max = max, step = step)
+  })
+  
+  # Upper bound 'b' (only when needed)
+  output$b <- renderUI({
+    # Show 'b' only for "middle" or "both" tails (keep your original intent)
+    tails <- input$tail
+    if (is.null(tails) || !tails %in% c("middle", "both")) return(NULL)
+    
+    dist <- input$dist %||% ""
+    
+    value <- 1; min <- 0; max <- 1; step <- 1
+    
+    if (identical(dist, "rnorm")) {
+      find_normal_step <- function(sd) 10^round(log10(7 * sd / 100))
+      mu <- as.numeric(input$mu %||% 0)
+      sd <- as.numeric(input$sd %||% 1)
+      value <- mu + 1.96 * sd
+      min   <- mu - 4 * sd
+      max   <- mu + 4 * sd
+      step  <- if (mu == 0 && sd == 1) 0.01 else find_normal_step(sd)
+    } else if (identical(dist, "rt")) {
+      value <- 1.96; min <- -6; max <- 6; step <- 0.01
+    } else if (identical(dist, "rbinom")) {
+      n <- as.integer(input$n %||% 10)
+      value <- round(n * 3 / 4)
+      min   <- 0
+      max   <- n
+      step  <- 1
     }
-  })  
+    
+    numericInput("b", "b", value = value, min = min, max = max, step = step)
+  })
+  
 
   ############
   # Plotting #
